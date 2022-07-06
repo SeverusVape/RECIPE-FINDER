@@ -1,0 +1,24 @@
+{
+    "name": "recipe-app",
+    "version": "1.0.0",
+    "description": "Recipe application",
+    "default": "index.html",
+    "scripts": {
+        "start": "parcel index.html",
+        "build": "parcel build index.html"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SeverusVape/RECIPE-FINDER.git"
+    },
+    "author": "Severus Vape",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/SeverusVape/RECIPE-FINDER/issues"
+    },
+    "homepage": "https://github.com/SeverusVape/RECIPE-FINDER#readme",
+    "devDependencies": {
+        "parcel": "^2.0.0-beta.1",
+        "sass": "^1.53.0"
+    }
+}
