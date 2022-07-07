@@ -451,7 +451,6 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-//const recipeContainer = document.querySelector(".recipe");
 // https://forkify-api.herokuapp.com/v2
 ///////////////////////////////////////
 const controlRecipes = async function () {
@@ -469,10 +468,13 @@ const controlRecipes = async function () {
   } catch (err) {
     console.error(err);
   }
-}; // * LISTENER FOR HASH CHANGING
+};
 
+const init = function () {
+  _recipeView.default.addHandlerRender(controlRecipes);
+};
 
-["hashchange", "load"].forEach(event => window.addEventListener(event, controlRecipes));
+init();
 },{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
 var global = require('../internals/global');
 
@@ -2718,6 +2720,11 @@ class RecipeView {
 
   #clear() {
     this.#parentElement.innerHTML = "";
+  }
+
+  addHandlerRender(handler) {
+    // * LISTENER FOR HASH CHANGING
+    ["hashchange", "load"].forEach(event => window.addEventListener(event, handler));
   }
 
   renderSpinner = function () {

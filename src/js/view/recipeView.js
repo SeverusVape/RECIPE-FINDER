@@ -16,6 +16,13 @@ class RecipeView {
         this.#parentElement.innerHTML = "";
     }
 
+    addHandlerRender(handler) {
+        // * LISTENER FOR HASH CHANGING
+        ["hashchange", "load"].forEach((event) =>
+            window.addEventListener(event, handler)
+        );
+    }
+
     renderSpinner = function () {
         const markup = `
         <div class="spinner">

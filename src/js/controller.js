@@ -3,8 +3,6 @@ import recipeView from "./view/recipeView.js";
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 
-//const recipeContainer = document.querySelector(".recipe");
-
 // https://forkify-api.herokuapp.com/v2
 
 ///////////////////////////////////////
@@ -25,7 +23,7 @@ const controlRecipes = async function () {
     }
 };
 
-// * LISTENER FOR HASH CHANGING
-["hashchange", "load"].forEach((event) =>
-    window.addEventListener(event, controlRecipes)
-);
+const init = function () {
+    recipeView.addHandlerRender(controlRecipes);
+};
+init();
