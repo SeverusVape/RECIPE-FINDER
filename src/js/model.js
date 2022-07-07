@@ -22,6 +22,6 @@ export const loadRecipe = async function (id) {
             ingredients: recipe.ingredients,
         };
     } catch (error) {
-        console.error(`SOMTHING WENT WRONG! ${error}`);
+        throw error;
     }
 };
