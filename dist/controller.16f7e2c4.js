@@ -445,24 +445,30 @@ var model = _interopRequireWildcard(require("./model.js"));
 
 var _recipeView = _interopRequireDefault(require("./view/recipeView.js"));
 
+var _searchView = _interopRequireDefault(require("./view/searchView.js"));
+
+var _resultsView = _interopRequireDefault(require("./view/resultsView.js"));
+
+var _regeneratorRuntime = require("regenerator-runtime");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-// https://forkify-api.herokuapp.com/v2
-///////////////////////////////////////
+if (module.hot) {
+  module.hot.accept();
+}
+
 const controlRecipes = async function () {
   try {
-    // * LOADING RECIPE
-    // getting id of hash
     const id = window.location.hash.slice(1);
     if (!id) return;
 
     _recipeView.default.renderSpinner();
 
-    await model.loadRecipe(id); // * RENDERING RECIPE
+    await model.loadRecipe(id);
 
     _recipeView.default.render(model.state.recipe);
   } catch (err) {
@@ -470,12 +476,29 @@ const controlRecipes = async function () {
   }
 };
 
+const controlSearchResults = async function () {
+  try {
+    _resultsView.default.renderSpinner();
+
+    const query = _searchView.default.getQuery();
+
+    if (!query) return;
+    await model.loadSearchResults(query);
+
+    _resultsView.default.render(model.state.search.results);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 const init = function () {
   _recipeView.default.addHandlerRender(controlRecipes);
+
+  _searchView.default.addHandlerSearch(controlSearchResults);
 };
 
 init();
-},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
+},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
 var global = require('../internals/global');
 
 var DESCRIPTORS = require('../internals/descriptors');
@@ -1858,7 +1881,7 @@ $({
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.state = exports.loadRecipe = void 0;
+exports.state = exports.loadSearchResults = exports.loadRecipe = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
@@ -1867,13 +1890,17 @@ var _config = require("./config.js");
 var _helpers = require("./helpers.js");
 
 const state = {
-  recipe: {}
+  recipe: {},
+  search: {
+    query: "",
+    results: []
+  }
 };
 exports.state = state;
 
 const loadRecipe = async function (id) {
   try {
-    const data = await (0, _helpers.getJSON)(`${_config.API_URL}/${id}`);
+    const data = await (0, _helpers.getJSON)(`${_config.API_URL}${id}`);
     const {
       recipe
     } = data.data;
@@ -1893,6 +1920,25 @@ const loadRecipe = async function (id) {
 };
 
 exports.loadRecipe = loadRecipe;
+
+const loadSearchResults = async function (query) {
+  try {
+    state.search.query = query;
+    const data = await (0, _helpers.getJSON)(`${_config.API_URL}?search=${query}`);
+    state.search.results = data.data.recipes.map(rec => {
+      return {
+        id: rec.id,
+        title: rec.title,
+        publisher: rec.publisher,
+        image: rec.image_url
+      };
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.loadSearchResults = loadSearchResults;
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./config.js":"09212d541c5c40ff2bd93475a904f8de","./helpers.js":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -2656,7 +2702,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.TIMEOUT_SEC = exports.API_URL = void 0;
-const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes";
+const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes/";
 exports.API_URL = API_URL;
 const TIMEOUT_SEC = 10;
 exports.TIMEOUT_SEC = TIMEOUT_SEC;
@@ -2693,7 +2739,7 @@ const getJSON = async function (url) {
 };
 
 exports.getJSON = getJSON;
-},{"./config.js":"09212d541c5c40ff2bd93475a904f8de","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16"}],"5f448afcf378a99019c9e817994af38c":[function(require,module,exports) {
+},{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./config.js":"09212d541c5c40ff2bd93475a904f8de"}],"5f448afcf378a99019c9e817994af38c":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2703,90 +2749,32 @@ exports.default = void 0;
 
 var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
 
+var _View = _interopRequireDefault(require("./View.js"));
+
 var _fractional = require("fractional");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-class RecipeView {
-  #parentElement = document.querySelector(".recipe");
-  #data;
-  #errorMessage = `SOMETHING WENT WRONG! WE COULD NOT FIND THAT.`;
-  #message = "SUCCSESS!";
-
-  render(data) {
-    this.#data = data;
-    const markup = this.#generateMarkup();
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML("afterbegin", markup);
-  }
-
-  #clear() {
-    this.#parentElement.innerHTML = "";
-  }
+class RecipeView extends _View.default {
+  _parentElement = document.querySelector(".recipe");
+  _errorMessage = `SOMETHING WENT WRONG! WE COULD NOT FIND THAT.`;
+  _message = "SUCCSESS!";
 
   addHandlerRender(handler) {
     // * LISTENER FOR HASH CHANGING
     ["hashchange", "load"].forEach(event => window.addEventListener(event, handler));
   }
 
-  renderSpinner() {
-    const markup = `
-        <div class="spinner">
-            <svg>
-                <use href="${_icons.default}#icon-loader"></use>
-            </svg>
-        </div>;
-        `;
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML("afterbegin", markup);
-  }
-
-  renderError() {
-    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.#errorMessage;
-    const markup = `
-            <div class="error">
-                <div>
-                    <svg>
-                        <use
-                            href="${_icons.default}#icon-alert-triangle"
-                        ></use>
-                    </svg>
-                </div>
-                <p>${message}</p>
-            </div>
-        `;
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML("afterbegin", markup);
-  }
-
-  renderMessage() {
-    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.#message;
-    const markup = `
-            <div class="message">
-                <div>
-                    <svg>
-                        <use
-                            href="${_icons.default}#icon-smile"
-                        ></use>
-                    </svg>
-                </div>
-                <p>${message}</p>
-            </div>
-        `;
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML("afterbegin", markup);
-  }
-
-  #generateMarkup() {
+  _generateMarkup() {
     return `
         <figure class="recipe__fig">
         <img
-            src="${this.#data.image}"
+            src="${this._data.image}"
             alt="Tomato"
             class="recipe__img"
         />
         <h1 class="recipe__title">
-            <span>${this.#data.title}</span>
+            <span>${this._data.title}</span>
         </h1>
         </figure>
 
@@ -2797,7 +2785,7 @@ class RecipeView {
                 </svg>
                 <span
                     class="recipe__info-data recipe__info-data--minutes"
-                    >${this.#data.cookingTime}</span
+                    >${this._data.cookingTime}</span
                 >
                 <span class="recipe__info-text">minutes</span>
             </div>
@@ -2807,7 +2795,7 @@ class RecipeView {
                 </svg>
                 <span
                     class="recipe__info-data recipe__info-data--people"
-                    >${this.#data.servings}</span
+                    >${this._data.servings}</span
                 >
                 <span class="recipe__info-text">servings</span>
 
@@ -2830,9 +2818,7 @@ class RecipeView {
             </div>
 
             <div class="recipe__user-generated">
-                <svg>
-                    <use href="${_icons.default}#icon-user"></use>
-                </svg>
+                
             </div>
             <button class="btn--round">
                 <svg class="">
@@ -2846,7 +2832,7 @@ class RecipeView {
         <div class="recipe__ingredients">
             <h2 class="heading--2">Recipe ingredients</h2>
             <ul class="recipe__ingredient-list">
-            ${this.#data.ingredients.map(this.#generateIngridient).join("")}
+            ${this._data.ingredients.map(this._generateIngridient).join("")}
             </ul>
         </div>
 
@@ -2854,12 +2840,12 @@ class RecipeView {
             <h2 class="heading--2">How to cook it</h2>
             <p class="recipe__directions-text">
                 This recipe was carefully designed and tested by
-                <span class="recipe__publisher">${this.#data.publisher}</span
+                <span class="recipe__publisher">${this._data.publisher}</span
                 >. Please check out directions at their website.
             </p>
             <a
                 class="btn--small recipe__btn"
-                href="${this.#data.sourceUrl}"
+                href="${this._data.sourceUrl}"
                 target="_blank"
             >
                 <span>Directions</span>
@@ -2873,7 +2859,7 @@ class RecipeView {
     `;
   }
 
-  #generateIngridient(ingr) {
+  _generateIngridient(ingr) {
     return `
         <li class="recipe__ingredient">
             <svg class="recipe__icon">
@@ -2892,7 +2878,7 @@ class RecipeView {
 var _default = new RecipeView();
 
 exports.default = _default;
-},{"url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d","fractional":"ddbc156a7c16e105c8df04e9fdec967d"}],"7804f5bfee37870c69bb61c4e0485a5d":[function(require,module,exports) {
+},{"url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d","fractional":"ddbc156a7c16e105c8df04e9fdec967d","./View.js":"f776c090b0b233bdc806fc66c7d180d6"}],"7804f5bfee37870c69bb61c4e0485a5d":[function(require,module,exports) {
 module.exports = require('./bundle-url').getBundleURL() + require('./relative-path')("2c861fe0e3ff22cb", "ecfa073df2d6127b");
 },{"./bundle-url":"2146da1905b95151ed14d455c784e7b7","./relative-path":"1b9943ef25c7bbdf0dd1b9fa91880a6c"}],"2146da1905b95151ed14d455c784e7b7":[function(require,module,exports) {
 "use strict";
@@ -3374,6 +3360,179 @@ Fraction.primeFactors = function(n)
 
 module.exports.Fraction = Fraction
 
-},{}]},{},["b363092f90d585a909a4f1d574026900","70378aa96d51ac1839f9c7a00cf57d91","175e469a7ea7db1c8c0744d04372621f"], null)
+},{}],"f776c090b0b233bdc806fc66c7d180d6":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+class View {
+  _data;
+
+  render(data) {
+    if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
+    this._data = data;
+
+    const markup = this._generateMarkup();
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML("afterbegin", markup);
+  }
+
+  _clear() {
+    this._parentElement.innerHTML = "";
+  }
+
+  renderSpinner() {
+    const markup = `
+        <div class="spinner">
+            <svg>
+                <use href="${_icons.default}#icon-loader"></use>
+            </svg>
+        </div>;
+        `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML("afterbegin", markup);
+  }
+
+  renderError() {
+    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._errorMessage;
+    const markup = `
+            <div class="error">
+                <div>
+                    <svg>
+                        <use
+                            href="${_icons.default}#icon-alert-triangle"
+                        ></use>
+                    </svg>
+                </div>
+                <p>${message}</p>
+            </div>
+        `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML("afterbegin", markup);
+  }
+
+  renderMessage() {
+    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._message;
+    const markup = `
+            <div class="message">
+                <div>
+                    <svg>
+                        <use
+                            href="${_icons.default}#icon-smile"
+                        ></use>
+                    </svg>
+                </div>
+                <p>${message}</p>
+            </div>
+        `;
+
+    this._clear();
+
+    this._parentElement.insertAdjacentHTML("afterbegin", markup);
+  }
+
+}
+
+exports.default = View;
+},{"url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}],"cf48d173dab942cc6a456b509a0fa4e2":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+class SearchView {
+  _parentEl = document.querySelector(".search");
+
+  getQuery() {
+    const query = this._parentEl.querySelector(".search__field").value;
+
+    this._clearInput();
+
+    return query;
+  }
+
+  _clearInput() {
+    this._parentEl.querySelector(".search__field").value = "";
+  }
+
+  addHandlerSearch(handler) {
+    this._parentEl.addEventListener("submit", function (event) {
+      event.preventDefault();
+      handler();
+    });
+  }
+
+}
+
+var _default = new SearchView();
+
+exports.default = _default;
+},{}],"00ef579a50ad1d11c73c3cf881928e2e":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _View = _interopRequireDefault(require("./View.js"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+class ResultsView extends _View.default {
+  _parentElement = document.querySelector(".results");
+  _errorMessage = `NO RECIPE FOUND. TRY TO SEARCH AGAIN.`;
+  _message = "SUCCSESS!";
+
+  _generateMarkup() {
+    return this._data.map(this._generateMarkupPreview).join("");
+  }
+
+  _generateMarkupPreview(result) {
+    return `
+            <li class="preview">
+                <a
+                    class="preview__link"
+                    href="#${result.id}"
+                >
+                    <figure class="preview__fig">
+                        <img src="${result.image}" alt="${result.title}" />
+                    </figure>
+                    <div class="preview__data">
+                        <h4 class="preview__title">
+                            ${result.title}
+                        </h4>
+                        <p class="preview__publisher">
+                            ${result.publisher}
+                        </p>
+                    </div>
+                </a>
+            </li>
+        `;
+  }
+
+}
+
+var _default = new ResultsView();
+
+exports.default = _default;
+},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}]},{},["b363092f90d585a909a4f1d574026900","70378aa96d51ac1839f9c7a00cf57d91","175e469a7ea7db1c8c0744d04372621f"], null)
 
 //# sourceMappingURL=controller.16f7e2c4.js.map
