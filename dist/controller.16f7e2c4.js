@@ -452,22 +452,13 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 //const recipeContainer = document.querySelector(".recipe");
-const timeout = function (s) {
-  return new Promise(function (_, reject) {
-    setTimeout(function () {
-      reject(new Error(`Request took too long! Timeout after ${s} second`));
-    }, s * 1000);
-  });
-}; // https://forkify-api.herokuapp.com/v2
+// https://forkify-api.herokuapp.com/v2
 ///////////////////////////////////////
-
-
 const controlRecipes = async function () {
   try {
     // * LOADING RECIPE
     // getting id of hash
     const id = window.location.hash.slice(1);
-    console.log(id);
     if (!id) return;
 
     _recipeView.default.renderSpinner();
@@ -1869,6 +1860,10 @@ exports.state = exports.loadRecipe = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
+var _config = require("./config.js");
+
+var _helpers = require("./helpers.js");
+
 const state = {
   recipe: {}
 };
@@ -1876,11 +1871,7 @@ exports.state = state;
 
 const loadRecipe = async function (id) {
   try {
-    const res = await fetch(`https://forkify-api.herokuapp.com/api/v2/recipes/${id}`);
-    const data = await res.json(); // Error message
-
-    if (!res.ok) throw new Error(`${data.message} (status : ${res.status})`); // recipe new obj
-
+    const data = await (0, _helpers.getJSON)(`${_config.API_URL}/${id}`);
     const {
       recipe
     } = data.data;
@@ -1895,12 +1886,12 @@ const loadRecipe = async function (id) {
       ingredients: recipe.ingredients
     };
   } catch (error) {
-    console.error(error);
+    console.error(`SOMTHING WENT WRONG! ${error}`);
   }
 };
 
 exports.loadRecipe = loadRecipe;
-},{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
+},{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./config.js":"09212d541c5c40ff2bd93475a904f8de","./helpers.js":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
  *
@@ -2656,7 +2647,51 @@ try {
   }
 }
 
-},{}],"5f448afcf378a99019c9e817994af38c":[function(require,module,exports) {
+},{}],"09212d541c5c40ff2bd93475a904f8de":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.TIMEOUT_SEC = exports.API_URL = void 0;
+const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes";
+exports.API_URL = API_URL;
+const TIMEOUT_SEC = 10;
+exports.TIMEOUT_SEC = TIMEOUT_SEC;
+},{}],"0e8dcd8a4e1c61cf18f78e1c2563655d":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getJSON = void 0;
+
+var _regeneratorRuntime = require("regenerator-runtime");
+
+var _config = require("./config.js");
+
+const timeout = function (s) {
+  return new Promise(function (_, reject) {
+    setTimeout(function () {
+      reject(new Error(`Request took too long! Timeout after ${s} second`));
+    }, s * 1000);
+  });
+};
+
+const getJSON = async function (url) {
+  try {
+    const res = await Promise.race([fetch(url), timeout(_config.TIMEOUT_SEC)]);
+    const data = await res.json(); // Error message
+
+    if (!res.ok) throw new Error(`${data.message} (status : ${res.status})`);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.getJSON = getJSON;
+},{"./config.js":"09212d541c5c40ff2bd93475a904f8de","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16"}],"5f448afcf378a99019c9e817994af38c":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
