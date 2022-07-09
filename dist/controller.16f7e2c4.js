@@ -449,7 +449,7 @@ var _searchView = _interopRequireDefault(require("./view/searchView.js"));
 
 var _resultsView = _interopRequireDefault(require("./view/resultsView.js"));
 
-var _regeneratorRuntime = require("regenerator-runtime");
+var _paginationView = _interopRequireDefault(require("./view/paginationView.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -457,6 +457,7 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
+// import { async } from "regenerator-runtime";
 if (module.hot) {
   module.hot.accept();
 }
@@ -485,20 +486,31 @@ const controlSearchResults = async function () {
     if (!query) return;
     await model.loadSearchResults(query);
 
-    _resultsView.default.render(model.getSearchResultPage());
+    _resultsView.default.render(model.getSearchResultPage()); // Pagination
+
+
+    _paginationView.default.render(model.state.search);
   } catch (error) {
     console.error(error);
   }
+};
+
+const controlPagination = function (goToPage) {
+  _resultsView.default.render(model.getSearchResultPage(goToPage));
+
+  _paginationView.default.render(model.state.search);
 };
 
 const init = function () {
   _recipeView.default.addHandlerRender(controlRecipes);
 
   _searchView.default.addHandlerSearch(controlSearchResults);
+
+  _paginationView.default.addHandlerClick(controlPagination);
 };
 
 init();
-},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
+},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e","./view/paginationView.js":"9140167fe8de071235d11a2fe09cdf6b"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
 var global = require('../internals/global');
 
 var DESCRIPTORS = require('../internals/descriptors');
@@ -2720,7 +2732,7 @@ const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes/";
 exports.API_URL = API_URL;
 const TIMEOUT_SEC = 10;
 exports.TIMEOUT_SEC = TIMEOUT_SEC;
-const RES_PER_PAGE = 10;
+const RES_PER_PAGE = 11;
 exports.RES_PER_PAGE = RES_PER_PAGE;
 },{}],"0e8dcd8a4e1c61cf18f78e1c2563655d":[function(require,module,exports) {
 "use strict";
@@ -3547,6 +3559,89 @@ class ResultsView extends _View.default {
 }
 
 var _default = new ResultsView();
+
+exports.default = _default;
+},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}],"9140167fe8de071235d11a2fe09cdf6b":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _View = _interopRequireDefault(require("./View.js"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+class PaginationView extends _View.default {
+  _parentElement = document.querySelector(".pagination");
+
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener("click", function (e) {
+      const btn = e.target.closest(".btn--inline");
+      if (!btn) return;
+      const goToPage = +btn.dataset.goto;
+      handler(goToPage);
+    });
+  }
+
+  _generateMarkup() {
+    const curPage = this._data.page;
+    const numPages = Math.ceil(this._data.results.length / this._data.resultPerPage); // Page 1 and others
+
+    if (curPage === 1 && numPages > 1) {
+      return `
+                <button data-goto="${curPage + 1}" class="btn--inline pagination__btn--next">
+                    <span>Page ${curPage + 1}</span>
+                    <svg class="search__icon">
+                        <use
+                            href="${_icons.default}#icon-arrow-right"
+                        ></use>
+                    </svg>
+                </button>
+            `;
+    } // Last page
+
+
+    if (curPage === numPages && numPages > 1) {
+      return `
+                <button data-goto="${curPage - 1}"  class="btn--inline pagination__btn--prev">
+                    <svg class="search__icon">
+                        <use href="${_icons.default}#icon-arrow-left"></use>
+                    </svg>
+                    <span>Page ${curPage - 1}</span>
+                </button>
+            `;
+    } // Other pages
+
+
+    if (curPage < numPages) {
+      return `
+                <button data-goto="${curPage - 1}"  class="btn--inline pagination__btn--prev">
+                    <svg class="search__icon">
+                        <use href="${_icons.default}#icon-arrow-left"></use>
+                    </svg>
+                    <span>Page ${curPage - 1}</span>
+                </button>
+                <button data-goto="${curPage + 1}"  class="btn--inline pagination__btn--next">
+                    <span>Page ${curPage + 1}</span>
+                    <svg class="search__icon">
+                        <use
+                            href="${_icons.default}#icon-arrow-right"
+                        ></use>
+                    </svg>
+                </button>
+            `;
+    }
+
+    return "";
+  }
+
+}
+
+var _default = new PaginationView();
 
 exports.default = _default;
 },{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}]},{},["b363092f90d585a909a4f1d574026900","70378aa96d51ac1839f9c7a00cf57d91","175e469a7ea7db1c8c0744d04372621f"], null)
