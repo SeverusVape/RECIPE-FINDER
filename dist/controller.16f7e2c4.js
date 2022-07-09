@@ -467,9 +467,13 @@ const controlRecipes = async function () {
     const id = window.location.hash.slice(1);
     if (!id) return;
 
-    _recipeView.default.renderSpinner();
+    _recipeView.default.renderSpinner(); // Update results view to mark selected search result
 
-    await model.loadRecipe(id);
+
+    _resultsView.default.update(model.getSearchResultPage()); // Loading recipe
+
+
+    await model.loadRecipe(id); // rendering recipe
 
     _recipeView.default.render(model.state.recipe);
   } catch (err) {
@@ -501,8 +505,16 @@ const controlPagination = function (goToPage) {
   _paginationView.default.render(model.state.search);
 };
 
+const controlServings = function (newServings) {
+  model.updateServings(newServings);
+
+  _recipeView.default.update(model.state.recipe);
+};
+
 const init = function () {
   _recipeView.default.addHandlerRender(controlRecipes);
+
+  _recipeView.default.addHandlerUpdateServings(controlServings);
 
   _searchView.default.addHandlerSearch(controlSearchResults);
 
@@ -1893,7 +1905,7 @@ $({
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.state = exports.loadSearchResults = exports.loadRecipe = exports.getSearchResultPage = void 0;
+exports.updateServings = exports.state = exports.loadSearchResults = exports.loadRecipe = exports.getSearchResultPage = void 0;
 
 var _regeneratorRuntime = require("regenerator-runtime");
 
@@ -1965,6 +1977,15 @@ const getSearchResultPage = function () {
 };
 
 exports.getSearchResultPage = getSearchResultPage;
+
+const updateServings = function (newServings) {
+  state.recipe.ingredients.forEach(element => {
+    element.quantity = element.quantity * newServings / state.recipe.servings;
+  });
+  state.recipe.servings = newServings;
+};
+
+exports.updateServings = updateServings;
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./config.js":"09212d541c5c40ff2bd93475a904f8de","./helpers.js":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -2793,6 +2814,17 @@ class RecipeView extends _View.default {
     ["hashchange", "load"].forEach(event => window.addEventListener(event, handler));
   }
 
+  addHandlerUpdateServings(handler) {
+    this._parentElement.addEventListener("click", function (e) {
+      const btn = e.target.closest(".btn--update-servings");
+      if (!btn) return;
+      const {
+        updateTo
+      } = btn.dataset;
+      if (+updateTo > 0) handler(+updateTo);
+    });
+  }
+
   _generateMarkup() {
     return `
         <figure class="recipe__fig">
@@ -2828,14 +2860,14 @@ class RecipeView extends _View.default {
                 <span class="recipe__info-text">servings</span>
 
                 <div class="recipe__info-buttons">
-                    <button class="btn--tiny btn--increase-servings">
+                    <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings - 1}">
                         <svg>
                             <use
                                 href="${_icons.default}#icon-minus-circle"
                             ></use>
                         </svg>
                     </button>
-                    <button class="btn--tiny btn--increase-servings">
+                    <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings + 1}">
                         <svg>
                             <use
                                 href="${_icons.default}#icon-plus-circle"
@@ -3414,6 +3446,28 @@ class View {
     this._parentElement.insertAdjacentHTML("afterbegin", markup);
   }
 
+  update(data) {
+    this._data = data;
+
+    const newMarkup = this._generateMarkup();
+
+    const newDOM = document.createRange().createContextualFragment(newMarkup);
+    const newElements = Array.from(newDOM.querySelectorAll("*"));
+    const currentElements = Array.from(this._parentElement.querySelectorAll("*"));
+    newElements.forEach((newEl, i) => {
+      const curEl = currentElements[i]; // update changed text
+
+      if (!newEl.isEqualNode(curEl) && newEl.firstChild?.nodeValue.trim() !== "") {
+        curEl.textContent = newEl.textContent;
+      } // update changed attributes
+
+
+      if (!newEl.isEqualNode(curEl)) {
+        Array.from(newEl.attributes).forEach(attr => curEl.setAttribute(attr.name, attr.value));
+      }
+    });
+  }
+
   _clear() {
     this._parentElement.innerHTML = "";
   }
@@ -3534,10 +3588,11 @@ class ResultsView extends _View.default {
   }
 
   _generateMarkupPreview(result) {
+    const id = window.location.hash.slice(1);
     return `
             <li class="preview">
                 <a
-                    class="preview__link"
+                    class="preview__link ${result.id === id ? "preview__link--active" : ""}"
                     href="#${result.id}"
                 >
                     <figure class="preview__fig">
