@@ -451,6 +451,8 @@ var _resultsView = _interopRequireDefault(require("./view/resultsView.js"));
 
 var _paginationView = _interopRequireDefault(require("./view/paginationView.js"));
 
+var _bookmarksView = _interopRequireDefault(require("./view/bookmarksView.js"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
@@ -470,7 +472,9 @@ const controlRecipes = async function () {
     _recipeView.default.renderSpinner(); // Update results view to mark selected search result
 
 
-    _resultsView.default.update(model.getSearchResultPage()); // Loading recipe
+    _resultsView.default.update(model.getSearchResultPage());
+
+    _bookmarksView.default.update(model.state.bookmarks); // Loading recipe
 
 
     await model.loadRecipe(id); // rendering recipe
@@ -512,13 +516,18 @@ const controlServings = function (newServings) {
 };
 
 const controlAddBookmark = function () {
+  // add/remove bookmark
   if (!model.state.recipe.bookmarked) {
     model.addBookmark(model.state.recipe);
   } else {
     model.deleteBookmark(model.state.recipe.id);
-  }
+  } // update recipe
 
-  _recipeView.default.update(model.state.recipe);
+
+  _recipeView.default.update(model.state.recipe); // render bookmark
+
+
+  _bookmarksView.default.render(model.state.bookmarks);
 };
 
 const init = function () {
@@ -534,7 +543,7 @@ const init = function () {
 };
 
 init();
-},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e","./view/paginationView.js":"9140167fe8de071235d11a2fe09cdf6b"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
+},{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e","./view/paginationView.js":"9140167fe8de071235d11a2fe09cdf6b","./view/bookmarksView.js":"70a4b5e82fb6cb089b3ef6f684519d4c"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
 var global = require('../internals/global');
 
 var DESCRIPTORS = require('../internals/descriptors');
@@ -3474,10 +3483,13 @@ class View {
   _data;
 
   render(data) {
+    let render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
     if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
     this._data = data;
 
     const markup = this._generateMarkup();
+
+    if (!render) return markup;
 
     this._clear();
 
@@ -3612,36 +3624,59 @@ exports.default = void 0;
 
 var _View = _interopRequireDefault(require("./View.js"));
 
-var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+var _previewView = _interopRequireDefault(require("./previewView.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+// import icons from "url:../../img/icons.svg";
 class ResultsView extends _View.default {
   _parentElement = document.querySelector(".results");
   _errorMessage = `NO RECIPE FOUND. TRY TO SEARCH AGAIN.`;
   _message = "SUCCSESS!";
 
   _generateMarkup() {
-    return this._data.map(this._generateMarkupPreview).join("");
+    return this._data.map(bookmark => _previewView.default.render(bookmark, false)).join("");
   }
 
-  _generateMarkupPreview(result) {
+}
+
+var _default = new ResultsView();
+
+exports.default = _default;
+},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","./previewView.js":"cbc04ae8c4a724d5b53c4d2a13124cfa"}],"cbc04ae8c4a724d5b53c4d2a13124cfa":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _View = _interopRequireDefault(require("./View.js"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+class PreviewView extends _View.default {
+  _parentElement = "";
+
+  _generateMarkup() {
     const id = window.location.hash.slice(1);
     return `
             <li class="preview">
                 <a
-                    class="preview__link ${result.id === id ? "preview__link--active" : ""}"
-                    href="#${result.id}"
+                    class="preview__link ${this._data.id === id ? "preview__link--active" : ""}"
+                    href="#${this._data.id}"
                 >
                     <figure class="preview__fig">
-                        <img src="${result.image}" alt="${result.title}" />
+                        <img src="${this._data.image}" alt="${this._data.title}" />
                     </figure>
                     <div class="preview__data">
                         <h4 class="preview__title">
-                            ${result.title}
+                            ${this._data.title}
                         </h4>
                         <p class="preview__publisher">
-                            ${result.publisher}
+                            ${this._data.publisher}
                         </p>
                     </div>
                 </a>
@@ -3651,7 +3686,7 @@ class ResultsView extends _View.default {
 
 }
 
-var _default = new ResultsView();
+var _default = new PreviewView();
 
 exports.default = _default;
 },{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}],"9140167fe8de071235d11a2fe09cdf6b":[function(require,module,exports) {
@@ -3737,6 +3772,35 @@ class PaginationView extends _View.default {
 var _default = new PaginationView();
 
 exports.default = _default;
-},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}]},{},["b363092f90d585a909a4f1d574026900","70378aa96d51ac1839f9c7a00cf57d91","175e469a7ea7db1c8c0744d04372621f"], null)
+},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","url:../../img/icons.svg":"7804f5bfee37870c69bb61c4e0485a5d"}],"70a4b5e82fb6cb089b3ef6f684519d4c":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _View = _interopRequireDefault(require("./View.js"));
+
+var _previewView = _interopRequireDefault(require("./previewView.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import icons from "url:../../img/icons.svg";
+class BookmarksView extends _View.default {
+  _parentElement = document.querySelector(".bookmarks__list");
+  _errorMessage = `No bookmarks yet...`;
+  _message = "";
+
+  _generateMarkup() {
+    return this._data.map(bookmark => _previewView.default.render(bookmark, false)).join("");
+  }
+
+}
+
+var _default = new BookmarksView();
+
+exports.default = _default;
+},{"./View.js":"f776c090b0b233bdc806fc66c7d180d6","./previewView.js":"cbc04ae8c4a724d5b53c4d2a13124cfa"}]},{},["b363092f90d585a909a4f1d574026900","70378aa96d51ac1839f9c7a00cf57d91","175e469a7ea7db1c8c0744d04372621f"], null)
 
 //# sourceMappingURL=controller.16f7e2c4.js.map
