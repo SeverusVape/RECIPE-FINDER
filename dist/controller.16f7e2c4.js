@@ -472,14 +472,15 @@ const controlRecipes = async function () {
     _recipeView.default.renderSpinner(); // Update results view to mark selected search result
 
 
-    _resultsView.default.update(model.getSearchResultPage());
-
-    _bookmarksView.default.update(model.state.bookmarks); // Loading recipe
+    _resultsView.default.update(model.getSearchResultPage()); // Loading recipe
 
 
     await model.loadRecipe(id); // rendering recipe
 
-    _recipeView.default.render(model.state.recipe);
+    _recipeView.default.render(model.state.recipe); // updating bookmarks view
+
+
+    _bookmarksView.default.update(model.state.bookmarks);
   } catch (err) {
     _recipeView.default.renderError();
   }
@@ -530,7 +531,13 @@ const controlAddBookmark = function () {
   _bookmarksView.default.render(model.state.bookmarks);
 };
 
+const controlBookmarks = function () {
+  _bookmarksView.default.render(model.state.bookmarks);
+};
+
 const init = function () {
+  _bookmarksView.default.addHandlerRander(controlBookmarks);
+
   _recipeView.default.addHandlerRender(controlRecipes);
 
   _recipeView.default.addHandlerUpdateServings(controlServings);
@@ -542,7 +549,11 @@ const init = function () {
   _paginationView.default.addHandlerClick(controlPagination);
 };
 
-init();
+init(); // ! JUST FOR DEVELOPMENT PORPOSE
+
+const clearBookmarks = function () {
+  localStorage.clear("bookmarks");
+}; // clearBookmarks()
 },{"core-js/modules/es.regexp.flags.js":"69c14483c7f90583888879597ac9d2d3","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","./model.js":"aabf248f40f7693ef84a0cb99f385d1f","./view/recipeView.js":"5f448afcf378a99019c9e817994af38c","./view/searchView.js":"cf48d173dab942cc6a456b509a0fa4e2","./view/resultsView.js":"00ef579a50ad1d11c73c3cf881928e2e","./view/paginationView.js":"9140167fe8de071235d11a2fe09cdf6b","./view/bookmarksView.js":"70a4b5e82fb6cb089b3ef6f684519d4c"}],"69c14483c7f90583888879597ac9d2d3":[function(require,module,exports) {
 var global = require('../internals/global');
 
@@ -2011,9 +2022,14 @@ const updateServings = function (newServings) {
 
 exports.updateServings = updateServings;
 
+const persistBookmarks = function () {
+  localStorage.setItem("bookmarks", JSON.stringify(state.bookmarks));
+};
+
 const addBookmark = function (recipe) {
   state.bookmarks.push(recipe);
   if (recipe.id === state.recipe.id) state.recipe.bookmarked = true;
+  persistBookmarks();
 };
 
 exports.addBookmark = addBookmark;
@@ -2022,9 +2038,17 @@ const deleteBookmark = function (id) {
   const index = state.bookmarks.findIndex(el => el.id === id);
   state.bookmarks.splice(index, 1);
   if (id === state.recipe.id) state.recipe.bookmarked = false;
+  persistBookmarks();
 };
 
 exports.deleteBookmark = deleteBookmark;
+
+const init = function () {
+  const storage = localStorage.getItem("bookmarks");
+  if (storage) state.bookmarks = JSON.parse(storage);
+};
+
+init();
 },{"regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./config.js":"09212d541c5c40ff2bd93475a904f8de","./helpers.js":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"e155e0d3930b156f86c48e8d05522b16":[function(require,module,exports) {
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -3791,6 +3815,10 @@ class BookmarksView extends _View.default {
   _parentElement = document.querySelector(".bookmarks__list");
   _errorMessage = `No bookmarks yet...`;
   _message = "";
+
+  addHandlerRander(handler) {
+    window.addEventListener("load", handler);
+  }
 
   _generateMarkup() {
     return this._data.map(bookmark => _previewView.default.render(bookmark, false)).join("");
